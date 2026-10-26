@@ -246,7 +246,103 @@ public class SQLmanager {
 
         return grades;
     }
-    
+
+    public Student getStudentById(int studentId) throws SQLException{
+        String sql = "SELECT studentId, stId, studentFullName FROM Students WHERE studentId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, studentId);
+
+        ResultSet res = pstmt.executeQuery();
+
+        Student student = null;
+        if (res.next()){
+            int id = res.getInt("studentId");
+            String stId = res.getString("stId");
+            String name = res.getString("studentFullName");
+
+            student = new Student(id, stId, name);
+        }
+
+        res.close();
+        pstmt.close();
+
+        return student;
+    }
+
+    public Subject getSubjectById(int subjectId) throws SQLException{
+        String sql = "SELECT subjectId, subjectName FROM Subjects WHERE subjectId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, subjectId);
+
+        ResultSet res = pstmt.executeQuery();
+
+        Subject subject = null;
+        if (res.next()){
+            int id = res.getInt("subjectId");
+            String name = res.getString("subjectName");
+
+            subject = new Subject(id, name);
+        }
+
+        res.close();
+        pstmt.close();
+
+        return subject;
+    }
+
+    public Teacher getTeacherById(int teacherId) throws SQLException{
+        String sql = "SELECT teacherId, stTeacherId, teacherFullName, subjectId FROM Teachers WHERE teacherId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, teacherId);
+
+        ResultSet res = pstmt.executeQuery();
+
+        Teacher teacher = null;
+        if (res.next()){
+            int id = res.getInt("teacherId");
+            String stId = res.getString("stTeacherId");
+            String name = res.getString("teacherFullName");
+            int subId = res.getInt("subjectId");
+
+            teacher = new Teacher(id, stId, name, subId);
+        }
+
+        res.close();
+        pstmt.close();
+
+        return teacher;
+    }
+
+    public Grade getGradeById(int gradeId) throws SQLException{
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date FROM Grades WHERE gradeId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, gradeId);
+
+        ResultSet res = pstmt.executeQuery();
+
+        Grade grade = null;
+        if (res.next()){
+            int degreeId = res.getInt("gradeId");
+            int student = res.getInt("studentId");
+            int teacher = res.getInt("teacherId");
+            int subject = res.getInt("subjectId");
+            int val = res.getInt("value");
+            String data = res.getString("date");
+
+
+            grade = new Grade(degreeId, student, teacher, subject, val, data);
+        }
+
+        res.close();
+        pstmt.close();
+
+        return grade;
+    }
+
     public void disconnect() throws SQLException {
         if (connection != null) {
             connection.close();
