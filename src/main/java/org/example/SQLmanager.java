@@ -343,6 +343,65 @@ public class SQLmanager {
         return grade;
     }
 
+    public void updateStudent(Student student) throws SQLException{
+        String sql = "UPDATE Students SET stId = ?, studentFullName = ? WHERE studentId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setString(1, student.getStId());
+        pstmt.setString(2, student.getStudentFullName());
+        pstmt.setInt(3, student.getStudentId());
+
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        System.out.println("Студент обновлён: " + student.getStudentFullName());
+    }
+
+    public void updateSubject(Subject subject) throws SQLException{
+        String sql = "UPDATE Subjects SET subjectName = ? WHERE subjectId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setString(1, subject.getSubjectName());
+        pstmt.setInt(2, subject.getSubjectId());
+
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        System.out.println("Предмет обновлён: " + subject.getSubjectName());
+    }
+
+    public void updateTeacher(Teacher teacher) throws SQLException{
+        String sql = "UPDATE Teachers SET stTeacherId = ?, teacherFullName = ?, subjectId = ? WHERE teacherId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setString(1, teacher.getStTeacherId());
+        pstmt.setString(2, teacher.getTeacherFullName());
+        pstmt.setInt(3, teacher.getSubject());
+        pstmt.setInt(4, teacher.getTeacherId());
+
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        System.out.println("Преподаватель обновлён: " + teacher.getTeacherFullName());
+    }
+
+    public void updateGrade(Grade grade) throws SQLException{
+        String sql = "UPDATE Grades SET studentId = ?, teacherId = ?, subjectId = ?, value = ?, date = ? WHERE gradeId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, grade.getStudentId());
+        pstmt.setInt(2, grade.getTeacherId());
+        pstmt.setInt(3, grade.getSubjectId());
+        pstmt.setInt(4, grade.getValue());
+        pstmt.setString(5, grade.getDate());
+        pstmt.setInt(6, grade.getGradeId());
+
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        System.out.println("Оценка обновлена: " + grade.getValue());
+    }
+
     public void disconnect() throws SQLException {
         if (connection != null) {
             connection.close();
