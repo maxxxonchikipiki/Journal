@@ -14,6 +14,7 @@ public class SQLmanager {
 
     public SQLmanager() throws SQLException {
         connection = DriverManager.getConnection("jdbc:sqlite:journal.db");
+	connection.createStatement().execute("PRAGMA foreign_keys = ON;");
         System.out.println("Подключение к базе данных установлено!");
     }
 
