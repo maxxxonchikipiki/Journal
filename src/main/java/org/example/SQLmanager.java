@@ -59,7 +59,7 @@ public class SQLmanager {
                 stTeacherId TEXT NOT NULL,
                 teacherFullName TEXT NOT NULL,
                 subjectId INTEGER,
-                FOREIGN KEY (subjectId) REFERENCES Subjects(subjectId)
+                FOREIGN KEY (subjectId) REFERENCES Subjects(subjectId) ON DELETE CASCADE
             )
         """;
 
@@ -78,10 +78,10 @@ public class SQLmanager {
                 teacherId INTEGER,
                 subjectId INTEGER, 
                 value INTEGER,
-                data TEXT NOT NULL,
-                FOREIGN KEY(studentId) REFERENCES Students(studentId),
-                FOREIGN KEY(teacherId) REFERENCES Teachers(teacherId),
-                FOREIGN KEY(subjectId) REFERENCES Subjects(subjectId)
+                date TEXT NOT NULL,
+                FOREIGN KEY(studentId) REFERENCES Students(studentId) ON DELETE CASCADE,
+                FOREIGN KEY(teacherId) REFERENCES Teachers(teacherId) ON DELETE CASCADE,
+                FOREIGN KEY(subjectId) REFERENCES Subjects(subjectId) ON DELETE CASCADE
             )
         """;
 
@@ -129,7 +129,7 @@ public class SQLmanager {
     }
 
     public void addGrade(Grade grade) throws SQLException{
-        String sql = "INSERT INTO Grades (studentId, teacherId, subjectId, value, data) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Grades (studentId, teacherId, subjectId, value, date) VALUES (?, ?, ?, ?, ?)";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
         pstmt.setInt(1, grade.getStudentId());
@@ -222,7 +222,7 @@ public class SQLmanager {
     public List<Grade> getAllGrades() throws SQLException{
         List<Grade> grades = new ArrayList<>();
 
-        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, data FROM Grades";
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date FROM Grades";
 
         Statement stmt = connection.createStatement();
 
