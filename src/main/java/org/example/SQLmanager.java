@@ -235,7 +235,7 @@ public class SQLmanager {
             int teacherId =  res.getInt("teacherId");
             int subjectId =  res.getInt("subjectId");
             int value =  res.getInt("value");
-            String data =  res.getString("data");
+            String data =  res.getString("date");
 
             Grade grade = new Grade(gradeId, studentId, teacherId, subjectId, value, data);
 
