@@ -402,6 +402,58 @@ public class SQLmanager {
         System.out.println("Оценка обновлена: " + grade.getValue());
     }
 
+    public void deleteStudent(int studentId) throws SQLException{
+        String sql = "DELETE FROM Students WHERE studentId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, studentId);
+
+        pstmt.executeUpdate();
+
+        pstmt.close();
+
+        System.out.println("Студент с ID " + studentId + " удалён");
+    }
+
+    public void deleteSubject(int subjectId) throws SQLException{
+        String sql = "DELETE FROM Subjects WHERE subjectId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, subjectId);
+
+        pstmt.executeUpdate();
+
+        pstmt.close();
+
+        System.out.println("Предмет с ID " + subjectId + " удалён");
+    }
+
+    public void deleteTeacher(int teacherId) throws SQLException{
+        String sql = "DELETE FROM Teachers WHERE teacherId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, teacherId);
+
+        pstmt.executeUpdate();
+
+        pstmt.close();
+
+        System.out.println("Преподаватель с ID " + teacherId + " удалён");
+    }
+
+    public void deleteGrade(int gradeId) throws SQLException{
+        String sql = "DELETE FROM Grades WHERE gradeId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, gradeId);
+
+        pstmt.executeUpdate();
+
+        pstmt.close();
+
+        System.out.println("Оценка с ID " + gradeId + " удалена");
+    }
+
     public void disconnect() throws SQLException {
         if (connection != null) {
             connection.close();
