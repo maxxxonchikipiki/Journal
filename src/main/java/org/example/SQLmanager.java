@@ -289,7 +289,7 @@ public class SQLmanager {
 
         while(res.next()){
             int id =  res.getInt("teacherId");
-	    int uId = res.getIng("userId");
+	    int uId = res.getInt("userId");
             String stId = res.getString("stTeacherId");
             String name = res.getString("teacherFullName");
             int sub = res.getInt("subjectId");
@@ -658,11 +658,15 @@ public class SQLmanager {
     public static void main(String[] args) {
         try {
             SQLmanager db = new SQLmanager();
+
+	    db.createUsers();
             db.createStudents();
             db.createSubjects();
             db.createTeachers();
             db.createGrades();
+
             db.disconnect();
+
             System.out.println("Все таблицы созданы!");
         } catch (SQLException e) {
             e.printStackTrace();
