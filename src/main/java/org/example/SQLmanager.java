@@ -14,7 +14,7 @@ public class SQLmanager {
 
     public SQLmanager() throws SQLException {
         connection = DriverManager.getConnection("jdbc:sqlite:journal.db");
-	connection.createStatement().execute("PRAGMA foreign_keys = ON;");
+        connection.createStatement().execute("PRAGMA foreign_keys = ON;");
         System.out.println("Подключение к базе данных установлено!");
     }
 
@@ -24,10 +24,11 @@ public class SQLmanager {
         String sql = """
                 CREATE TABLE IF NOT EXISTS Students (
                 studentId INTEGER PRIMARY KEY AUTOINCREMENT,
-		userId INTEGER,
+		        userId INTEGER,
                 stId TEXT NOT NULL,
                 studentFullName TEXT NOT NULL,
-		FOREIGN KEY (userId) REFERENCES Users(UserId) ON DELETE CASCADE
+                className TEXT NOT NULL,
+		        FOREIGN KEY (userId) REFERENCES Users(UserId) ON DELETE CASCADE
             )
         """;
 
@@ -59,11 +60,12 @@ public class SQLmanager {
         String sql = """
                 CREATE TABLE IF NOT EXISTS Teachers (
                 teacherId INTEGER PRIMARY KEY AUTOINCREMENT,
-		userId INTEGER,
+		        userId INTEGER,
                 stTeacherId TEXT NOT NULL,
                 teacherFullName TEXT NOT NULL,
                 subjectId INTEGER,
-		FOREIGN KEY (userId) REFERENCES Users(UserId) ON DELETE CASCADE,
+                classNames TEXT NOT NULL,
+		        FOREIGN KEY (userId) REFERENCES Users(UserId) ON DELETE CASCADE,
                 FOREIGN KEY (subjectId) REFERENCES Subjects(subjectId) ON DELETE CASCADE
             )
         """;
@@ -74,29 +76,29 @@ public class SQLmanager {
         System.out.println("Таблица Teachers создана!");
     }
 
-    public void createGrades() throws SQLException{
+    public void createGrades() throws SQLException {
         Statement stmt = connection.createStatement();
         String sql = """
-                CREATE TABLE IF NOT EXISTS Grades(
+            CREATE TABLE IF NOT EXISTS Grades(
                 gradeId INTEGER PRIMARY KEY AUTOINCREMENT,
                 studentId INTEGER,
                 teacherId INTEGER,
                 subjectId INTEGER, 
-                value INTEGER,
+                value TEXT,
                 date TEXT NOT NULL,
+                comment TEXT,
                 FOREIGN KEY(studentId) REFERENCES Students(studentId) ON DELETE CASCADE,
                 FOREIGN KEY(teacherId) REFERENCES Teachers(teacherId) ON DELETE CASCADE,
                 FOREIGN KEY(subjectId) REFERENCES Subjects(subjectId) ON DELETE CASCADE
             )
         """;
-
         stmt.execute(sql);
         stmt.close();
     }
 
     public void createUsers() throws SQLException {
-	Statement stmt = connection.createStatement();
-	String sql = """
+        Statement stmt = connection.createStatement();
+        String sql = """
 		CREATE TABLE IF NOT EXISTS Users (
 		userId INTEGER PRIMARY KEY AUTOINCREMENT,
 		login TEXT UNIQUE NOT NULL,
@@ -105,18 +107,19 @@ public class SQLmanager {
             )
         """;
 
-	stmt.execute(sql);
-	stmt.close();
-	System.out.println("Таблица Users создана!");
+        stmt.execute(sql);
+        stmt.close();
+        System.out.println("Таблица Users создана!");
     }
 
     public void addStudent(Student student) throws SQLException{
-        String sql = "INSERT INTO Students (userId, stId, studentFullName) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO Students (userId, stId, studentFullName, className) VALUES (?, ?, ?, ?)";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setInt(1, student.getUserId());
+        pstmt.setInt(1, student.getUserId());
         pstmt.setString(2, student.getStId());
         pstmt.setString(3, student.getStudentFullName());
+        pstmt.setString(4, student.getClassName());
 
         pstmt.executeUpdate();
         pstmt.close();
@@ -137,13 +140,14 @@ public class SQLmanager {
     }
 
     public void addTeacher(Teacher teacher) throws SQLException{
-        String sql = "INSERT INTO Teachers (userId, stTeacherId, teacherFullName, subjectId) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Teachers (userId, stTeacherId, teacherFullName, subjectId, classNames) VALUES (?, ?, ?, ?, ?)";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setInt(1, teacher.getUserId());
+        pstmt.setInt(1, teacher.getUserId());
         pstmt.setString(2, teacher.getStTeacherId());
         pstmt.setString(3, teacher.getTeacherFullName());
         pstmt.setInt(4, teacher.getSubject());
+        pstmt.setString(5, teacher.getClassNames());
 
         pstmt.executeUpdate();
         pstmt.close();
@@ -151,15 +155,16 @@ public class SQLmanager {
         System.out.println("Преподаватель добавлен: " + teacher.getTeacherFullName());
     }
 
-    public void addGrade(Grade grade) throws SQLException{
-        String sql = "INSERT INTO Grades (studentId, teacherId, subjectId, value, date) VALUES (?, ?, ?, ?, ?)";
+    public void addGrade(Grade grade) throws SQLException {
+        String sql = "INSERT INTO Grades (studentId, teacherId, subjectId, value, date, comment) VALUES (?, ?, ?, ?, ?, ?)";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
         pstmt.setInt(1, grade.getStudentId());
         pstmt.setInt(2, grade.getTeacherId());
         pstmt.setInt(3, grade.getSubjectId());
-        pstmt.setInt(4, grade.getValue());
+        pstmt.setString(4, grade.getValue());
         pstmt.setString(5, grade.getDate());
+        pstmt.setString(6, grade.getComment());
 
         pstmt.executeUpdate();
         pstmt.close();
@@ -168,70 +173,70 @@ public class SQLmanager {
     }
 
     public User registerUser(String login, String password, String role) throws SQLException {
-	String sql = "INSERT INTO Users (login, password, role) VALUES (?, ?, ?)";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "INSERT INTO Users (login, password, role) VALUES (?, ?, ?)";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setString(1, login);
-	pstmt.setString(2, password);
-	pstmt.setString(3, role);
+        pstmt.setString(1, login);
+        pstmt.setString(2, password);
+        pstmt.setString(3, role);
 
-	pstmt.executeUpdate();
-	pstmt.close();
+        pstmt.executeUpdate();
+        pstmt.close();
 
-	return getUserByLogin(login);
+        return getUserByLogin(login);
     }
 
     public User login(String login, String password) throws SQLException {
-	String sql = "SELECT userId, login, password, role FROM Users WHERE login = ? AND password = ?";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "SELECT userId, login, password, role FROM Users WHERE login = ? AND password = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setString(1, login);
-	pstmt.setString(2, password);
+        pstmt.setString(1, login);
+        pstmt.setString(2, password);
 
-	ResultSet res = pstmt.executeQuery();
-	User user = null;
-	if (res.next()) {
-	    user = new User(
-		res.getInt("userId"),
-		res.getString("login"),
-		res.getString("password"),
-		res.getString("role")
-		);
-	}
+        ResultSet res = pstmt.executeQuery();
+        User user = null;
+        if (res.next()) {
+            user = new User(
+                    res.getInt("userId"),
+                    res.getString("login"),
+                    res.getString("password"),
+                    res.getString("role")
+            );
+        }
 
-	res.close();
-	pstmt.close();
+        res.close();
+        pstmt.close();
 
-	return user;
+        return user;
     }
 
     public User getUserByLogin(String login) throws SQLException {
-	String sql = "SELECT userId, login, password, role FROM Users WHERE login = ?";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "SELECT userId, login, password, role FROM Users WHERE login = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setString(1, login);
+        pstmt.setString(1, login);
 
-	ResultSet res = pstmt.executeQuery();
-	User user = null;
-	if (res.next()) {
-	    user = new User(
-		res.getInt("userId"),
-		res.getString("login"),
-		res.getString("password"),
-		res.getString("role")
-	    );
-	}
+        ResultSet res = pstmt.executeQuery();
+        User user = null;
+        if (res.next()) {
+            user = new User(
+                    res.getInt("userId"),
+                    res.getString("login"),
+                    res.getString("password"),
+                    res.getString("role")
+            );
+        }
 
-	res.close();
-	pstmt.close();
+        res.close();
+        pstmt.close();
 
-	return user;
+        return user;
     }
 
     public List<Student> getAllStudents() throws SQLException{
         List<Student> students = new ArrayList<>();
 
-        String sql = "SELECT studentId, userId, stId, studentFullName FROM Students";
+        String sql = "SELECT studentId, userId, stId, studentFullName, className FROM Students";
 
         Statement stmt = connection.createStatement();
 
@@ -239,11 +244,12 @@ public class SQLmanager {
 
         while(res.next()){
             int id =  res.getInt("studentId");
-	    int uId = res.getInt("userId");
+            int uId = res.getInt("userId");
             String stId = res.getString("stId");
             String name = res.getString("studentFullName");
+            String clname = res.getString("className");
 
-            Student student = new Student(id, uId, stId, name);
+            Student student = new Student(id, uId, stId, name, clname);
 
             students.add(student);
         }
@@ -281,7 +287,7 @@ public class SQLmanager {
     public List<Teacher> getAllTeachers() throws SQLException{
         List<Teacher> teachers = new ArrayList<>();
 
-        String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId FROM Teachers";
+        String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId, classNames FROM Teachers";
 
         Statement stmt = connection.createStatement();
 
@@ -289,12 +295,13 @@ public class SQLmanager {
 
         while(res.next()){
             int id =  res.getInt("teacherId");
-	    int uId = res.getInt("userId");
+            int uId = res.getInt("userId");
             String stId = res.getString("stTeacherId");
             String name = res.getString("teacherFullName");
             int sub = res.getInt("subjectId");
+            String clnames = res.getString("classNames");
 
-            Teacher teacher = new Teacher(id, uId, stId, name, sub);
+            Teacher teacher = new Teacher(id, uId, stId, name, sub, clnames);
 
             teachers.add(teacher);
         }
@@ -305,61 +312,57 @@ public class SQLmanager {
         return teachers;
     }
 
-    public List<Grade> getAllGrades() throws SQLException{
+    public List<Grade> getAllGrades() throws SQLException {
         List<Grade> grades = new ArrayList<>();
-
-        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date FROM Grades";
-
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date, comment FROM Grades";
         Statement stmt = connection.createStatement();
-
         ResultSet res = stmt.executeQuery(sql);
 
-        while(res.next()){
-            int gradeId =  res.getInt("gradeId");
-            int studentId =  res.getInt("studentId");
-            int teacherId =  res.getInt("teacherId");
-            int subjectId =  res.getInt("subjectId");
-            int value =  res.getInt("value");
-            String data =  res.getString("date");
-
-            Grade grade = new Grade(gradeId, studentId, teacherId, subjectId, value, data);
-
+        while (res.next()) {
+            Grade grade = new Grade(
+                    res.getInt("gradeId"),
+                    res.getInt("studentId"),
+                    res.getInt("teacherId"),
+                    res.getInt("subjectId"),
+                    res.getString("value"),
+                    res.getString("date"),
+                    res.getString("comment")
+            );
             grades.add(grade);
         }
 
         stmt.close();
         res.close();
-
         return grades;
     }
 
     public List<User> getAllUsers() throws SQLException {
-    	List<User> users = new ArrayList<>();
+        List<User> users = new ArrayList<>();
 
-    	String sql = "SELECT userId, login, password, role FROM Users";
+        String sql = "SELECT userId, login, password, role FROM Users";
 
-    	Statement stmt = connection.createStatement();
+        Statement stmt = connection.createStatement();
 
-	ResultSet res = stmt.executeQuery(sql);
+        ResultSet res = stmt.executeQuery(sql);
 
-    	while (res.next()) {
+        while (res.next()) {
             User user = new User(
-            	res.getInt("userId"),
-            	res.getString("login"),
-            	res.getString("password"),
-            	res.getString("role")
+                    res.getInt("userId"),
+                    res.getString("login"),
+                    res.getString("password"),
+                    res.getString("role")
             );
             users.add(user);
-    	}
+        }
 
-    	res.close();
-    	stmt.close();
+        res.close();
+        stmt.close();
 
-    	return users;
+        return users;
     }
 
     public Student getStudentById(int studentId) throws SQLException{
-        String sql = "SELECT studentId, userId, stId, studentFullName FROM Students WHERE studentId = ?";
+        String sql = "SELECT studentId, userId, stId, studentFullName, className FROM Students WHERE studentId = ?";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
         pstmt.setInt(1, studentId);
@@ -369,11 +372,12 @@ public class SQLmanager {
         Student student = null;
         if (res.next()){
             int id = res.getInt("studentId");
-	    int uId = res.getInt("userId");
+            int uId = res.getInt("userId");
             String stId = res.getString("stId");
             String name = res.getString("studentFullName");
+            String clname = res.getString("className");
 
-            student = new Student(id, uId, stId, name);
+            student = new Student(id, uId, stId, name, clname);
         }
 
         res.close();
@@ -405,7 +409,7 @@ public class SQLmanager {
     }
 
     public Teacher getTeacherById(int teacherId) throws SQLException{
-        String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId FROM Teachers WHERE teacherId = ?";
+        String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId, classNames FROM Teachers WHERE teacherId = ?";
         PreparedStatement pstmt = connection.prepareStatement(sql);
 
         pstmt.setInt(1, teacherId);
@@ -415,12 +419,13 @@ public class SQLmanager {
         Teacher teacher = null;
         if (res.next()){
             int id = res.getInt("teacherId");
-	    int uId = res.getInt("userId");
+            int uId = res.getInt("userId");
             String stId = res.getString("stTeacherId");
             String name = res.getString("teacherFullName");
             int subId = res.getInt("subjectId");
+            String clnames = res.getString("classNames");
 
-            teacher = new Teacher(id, uId, stId, name, subId);
+            teacher = new Teacher(id, uId, stId, name, subId, clnames);
         }
 
         res.close();
@@ -429,101 +434,100 @@ public class SQLmanager {
         return teacher;
     }
 
-    public Grade getGradeById(int gradeId) throws SQLException{
-        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date FROM Grades WHERE gradeId = ?";
+    public Grade getGradeById(int gradeId) throws SQLException {
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date, comment FROM Grades WHERE gradeId = ?";
         PreparedStatement pstmt = connection.prepareStatement(sql);
-
         pstmt.setInt(1, gradeId);
 
         ResultSet res = pstmt.executeQuery();
-
         Grade grade = null;
-        if (res.next()){
-            int degreeId = res.getInt("gradeId");
-            int student = res.getInt("studentId");
-            int teacher = res.getInt("teacherId");
-            int subject = res.getInt("subjectId");
-            int val = res.getInt("value");
-            String data = res.getString("date");
+        if (res.next()) {
+            grade = new Grade(
+                    res.getInt("gradeId"),
+                    res.getInt("studentId"),
+                    res.getInt("teacherId"),
+                    res.getInt("subjectId"),
+                    res.getString("value"),
+                    res.getString("date"),
+                    res.getString("comment")
+            );
+        }
 
+        res.close();
+        pstmt.close();
+        return grade;
+    }
 
-            grade = new Grade(degreeId, student, teacher, subject, val, data);
+    public User getUserById(int userId) throws SQLException {
+        String sql = "SELECT userId, login, password, role FROM Users WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+
+        pstmt.setInt(1, userId);
+
+        ResultSet res = pstmt.executeQuery();
+        User user = null;
+        if (res.next()) {
+            user = new User(
+                    res.getInt("userId"),
+                    res.getString("login"),
+                    res.getString("password"),
+                    res.getString("role")
+            );
         }
 
         res.close();
         pstmt.close();
 
-        return grade;
-    }
-
-    public User getUserById(int userId) throws SQLException {
-	String sql = "SELECT userId, login, password, role FROM Users WHERE userId = ?";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
-
-	pstmt.setInt(1, userId);
-
-	ResultSet res = pstmt.executeQuery();
-	User user = null;
-	if (res.next()) {
-	    user = new User(
-		res.getInt("userId"),
-		res.getString("login"),
-		res.getString("password"),
-		res.getString("role")
-	    );
-	}
-
-	res.close();
-	pstmt.close();
-
-	return user;
+        return user;
     }
 
     public Student getStudentByUserId(int userId) throws SQLException {
-	String sql = "SELECT studentId, userId, stId, studentFullName FROM Students WHERE userId = ?";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "SELECT studentId, userId, stId, studentFullName, className FROM Students WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setInt(1, userId);
+        pstmt.setInt(1, userId);
 
-	ResultSet res = pstmt.executeQuery();
-	Student student = null;
-	if (res.next()) {
-	    student = new Student(
-		res.getInt("studentId"),
-		res.getInt("userId"),
-		res.getString("stId"),
-		res.getString("studentFullName")
-	    );
-	}
+        ResultSet res = pstmt.executeQuery();
+        Student student = null;
+        if (res.next()) {
+            student = new Student(
+                    res.getInt("studentId"),
+                    res.getInt("userId"),
+                    res.getString("stId"),
+                    res.getString("studentFullName"),
+                    res.getString("className")
+            );
+        }
 
-	res.close();
-	pstmt.close();
+        res.close();
+        pstmt.close();
 
-	return student;
+        return student;
     }
 
     public Teacher getTeacherByUserId(int userId) throws SQLException {
-	String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId FROM Teachers WHERE userId = ?";
-	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "SELECT teacherId, userId, stTeacherId, teacherFullName, subjectId, classNames FROM Teachers WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setInt(1, userId);
+        pstmt.setInt(1, userId);
 
-	ResultSet res = pstmt.executeQuery();
-	Teacher teacher = null;
-	if (res.next()) {
- 	    teacher = new Teacher(
- 		res.getInt("teacherId"),
-      		res.getInt("userId"),
-       		res.getString("stTeacherId"),
-           	res.getString("teacherFullName"),
-            	res.getInt("subjectId")
+        ResultSet res = pstmt.executeQuery();
+        Teacher teacher = null;
+        if (res.next()) {
+            teacher = new Teacher(
+                    res.getInt("teacherId"),
+                    res.getInt("userId"),
+                    res.getString("stTeacherId"),
+                    res.getString("teacherFullName"),
+                    res.getInt("subjectId"),
+                    res.getString("classNames")
             );
-    	}
+        }
 
-   	res.close();
-    	pstmt.close();
+        res.close();
+        pstmt.close();
 
-    	return teacher;
+        return teacher;
     }
 
     public void updateStudent(Student student) throws SQLException{
@@ -575,7 +579,7 @@ public class SQLmanager {
         pstmt.setInt(1, grade.getStudentId());
         pstmt.setInt(2, grade.getTeacherId());
         pstmt.setInt(3, grade.getSubjectId());
-        pstmt.setInt(4, grade.getValue());
+        pstmt.setString(4, grade.getValue());
         pstmt.setString(5, grade.getDate());
         pstmt.setInt(6, grade.getGradeId());
 
@@ -638,15 +642,15 @@ public class SQLmanager {
     }
 
     public void deleteUser(int userId) throws SQLException {
-    	String sql = "DELETE FROM Users WHERE userId = ?";
-    	PreparedStatement pstmt = connection.prepareStatement(sql);
+        String sql = "DELETE FROM Users WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
 
-	pstmt.setInt(1, userId);
+        pstmt.setInt(1, userId);
 
-    	pstmt.executeUpdate();
-    	pstmt.close();
+        pstmt.executeUpdate();
+        pstmt.close();
 
-    	System.out.println("Пользователь с ID " + userId + " удалён");
+        System.out.println("Пользователь с ID " + userId + " удалён");
     }
 
     public boolean hasUsers() throws SQLException {
@@ -698,14 +702,14 @@ public class SQLmanager {
         return String.format("st%03d", count + 1);
     }
 
-    public User addTeacherWithAutoLogin(String teacherFullName, int subjectId) throws SQLException {
+    public User addTeacherWithAutoLogin(String teacherFullName, int subjectId, String classNames) throws SQLException {
         String login = generateTeacherLogin();
         String password = generatePassword();
         String stTeacherId = login;
 
         User user = registerUser(login, password, "TEACHER");
 
-        Teacher teacher = new Teacher(0, user.getUserId(), stTeacherId, teacherFullName, subjectId);
+        Teacher teacher = new Teacher(0, user.getUserId(), stTeacherId, teacherFullName, subjectId, classNames);
         addTeacher(teacher);
 
         System.out.println("Учитель добавлен: " + teacherFullName);
@@ -714,20 +718,93 @@ public class SQLmanager {
         return user;
     }
 
-    public User addStudentWithAutoLogin(String studentFullName) throws SQLException {
+    public User addStudentWithAutoLogin(String studentFullName, String className) throws SQLException {
         String login = generateStudentLogin();
         String password = generatePassword();
         String stId = login;
 
         User user = registerUser(login, password, "STUDENT");
 
-        Student student = new Student(0, user.getUserId(), stId, studentFullName);
+        Student student = new Student(0, user.getUserId(), stId, studentFullName, className);
         addStudent(student);
 
         System.out.println("Ученик добавлен: " + studentFullName);
         System.out.println("Логин: " + login + ", Пароль: " + password);
 
         return user;
+    }
+
+    public List<Grade> getGradesByStudentId(int studentId) throws SQLException {
+        List<Grade> grades = new ArrayList<>();
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date, comment FROM Grades WHERE studentId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, studentId);
+
+        ResultSet res = pstmt.executeQuery();
+        while (res.next()) {
+            Grade grade = new Grade(
+                    res.getInt("gradeId"),
+                    res.getInt("studentId"),
+                    res.getInt("teacherId"),
+                    res.getInt("subjectId"),
+                    res.getString("value"),
+                    res.getString("date"),
+                    res.getString("comment")
+            );
+            grades.add(grade);
+        }
+        res.close();
+        pstmt.close();
+        return grades;
+    }
+
+    public List<Grade> getGradesByTeacherId(int teacherId) throws SQLException {
+        List<Grade> grades = new ArrayList<>();
+        String sql = "SELECT gradeId, studentId, teacherId, subjectId, value, date, comment FROM Grades WHERE teacherId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, teacherId);
+
+        ResultSet res = pstmt.executeQuery();
+        while (res.next()) {
+            Grade grade = new Grade(
+                    res.getInt("gradeId"),
+                    res.getInt("studentId"),
+                    res.getInt("teacherId"),
+                    res.getInt("subjectId"),
+                    res.getString("value"),
+                    res.getString("date"),
+                    res.getString("comment")
+            );
+            grades.add(grade);
+        }
+        res.close();
+        pstmt.close();
+        return grades;
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void updateStudentClass(int userId, String newClassName) throws SQLException {
+        String sql = "UPDATE Students SET className = ? WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+        pstmt.setString(1, newClassName);
+        pstmt.setInt(2, userId);
+        pstmt.executeUpdate();
+        pstmt.close();
+        System.out.println("Класс ученика обновлён: " + newClassName);
+    }
+
+    public void updateTeacher(int userId, int newSubjectId, String newClassNames) throws SQLException {
+        String sql = "UPDATE Teachers SET subjectId = ?, classNames = ? WHERE userId = ?";
+        PreparedStatement pstmt = connection.prepareStatement(sql);
+        pstmt.setInt(1, newSubjectId);
+        pstmt.setString(2, newClassNames);
+        pstmt.setInt(3, userId);
+        pstmt.executeUpdate();
+        pstmt.close();
+        System.out.println("Данные учителя обновлены");
     }
 
     public void disconnect() throws SQLException {
@@ -740,7 +817,7 @@ public class SQLmanager {
         try {
             SQLmanager db = new SQLmanager();
 
-	    db.createUsers();
+            db.createUsers();
             db.createStudents();
             db.createSubjects();
             db.createTeachers();
