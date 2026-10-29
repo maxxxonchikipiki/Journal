@@ -4,6 +4,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.Modality;
@@ -107,6 +108,10 @@ public class AdminPanel {
         fullNameField.setPromptText("ФИО учителя");
         fullNameField.setMaxWidth(300);
 
+        TextField classNamesField = new TextField();
+        classNamesField.setPromptText("Классы (например, 9А, 10Б)");
+        classNamesField.setMaxWidth(300);
+
         ComboBox<Subject> subjectCombo = new ComboBox<>();
         subjectCombo.setPromptText("Выберите предмет");
         subjectCombo.setMaxWidth(300);
@@ -122,15 +127,16 @@ public class AdminPanel {
         addButton.setMaxWidth(300);
         addButton.setOnAction(e -> {
             String fullName = fullNameField.getText().trim();
+            String classNames = classNamesField.getText().trim();
             Subject selectedSubject = subjectCombo.getValue();
 
-            if (fullName.isEmpty() || selectedSubject == null) {
-                showAlert("Ошибка", "Введите ФИО и выберите предмет!");
+            if (fullName.isEmpty() || classNames.isEmpty() || selectedSubject == null) {
+                showAlert("Ошибка", "Заполните все поля и выберите предмет!");
                 return;
             }
 
             try {
-                User teacherUser = db.addTeacherWithAutoLogin(fullName, selectedSubject.getSubjectId());
+                User teacherUser = db.addTeacherWithAutoLogin(fullName, selectedSubject.getSubjectId(), classNames);
                 showAlert("Успех", "Учитель добавлен!\nЛогин: " + teacherUser.getUserLogin() +
                         "\nПароль: " + teacherUser.getUserPassword());
                 dialogStage.close();
@@ -148,9 +154,9 @@ public class AdminPanel {
         VBox layout = new VBox(15);
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.CENTER);
-        layout.getChildren().addAll(titleLabel, fullNameField, subjectCombo, addButton, cancelButton);
+        layout.getChildren().addAll(titleLabel, fullNameField, classNamesField, subjectCombo, addButton, cancelButton);
 
-        Scene scene = new Scene(layout, 400, 350);
+        Scene scene = new Scene(layout, 400, 400);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
         dialogStage.setScene(scene);
@@ -170,18 +176,23 @@ public class AdminPanel {
         fullNameField.setPromptText("ФИО ученика");
         fullNameField.setMaxWidth(300);
 
+        TextField classField = new TextField();
+        classField.setPromptText("Класс (например, 9А)");
+        classField.setMaxWidth(300);
+
         Button addButton = new Button("Добавить");
         addButton.setMaxWidth(300);
         addButton.setOnAction(e -> {
             String fullName = fullNameField.getText().trim();
+            String className = classField.getText().trim();
 
-            if (fullName.isEmpty()) {
-                showAlert("Ошибка", "Введите ФИО ученика!");
+            if (fullName.isEmpty() || className.isEmpty()) {
+                showAlert("Ошибка", "Введите ФИО и класс ученика!");
                 return;
             }
 
             try {
-                User studentUser = db.addStudentWithAutoLogin(fullName);
+                User studentUser = db.addStudentWithAutoLogin(fullName, className);
                 showAlert("Успех", "Ученик добавлен!\nЛогин: " + studentUser.getUserLogin() +
                         "\nПароль: " + studentUser.getUserPassword());
                 dialogStage.close();
@@ -199,9 +210,9 @@ public class AdminPanel {
         VBox layout = new VBox(15);
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.CENTER);
-        layout.getChildren().addAll(titleLabel, fullNameField, addButton, cancelButton);
+        layout.getChildren().addAll(titleLabel, fullNameField, classField, addButton, cancelButton);
 
-        Scene scene = new Scene(layout, 400, 300);
+        Scene scene = new Scene(layout, 400, 350);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
         dialogStage.setScene(scene);
@@ -211,17 +222,245 @@ public class AdminPanel {
     private void showAllUsers() {
         try {
             List<User> users = db.getAllUsers();
-            StringBuilder userList = new StringBuilder();
-            for (User user : users) {
-                userList.append("Логин: ").append(user.getUserLogin())
-                        .append(", Роль: ").append(user.getUserRole())
-                        .append("\n");
-            }
-            showAlert("Список пользователей", userList.toString());
+            List<Student> students = db.getAllStudents();
+            List<Teacher> teachers = db.getAllTeachers();
+            List<Subject> subjects = db.getAllSubjects();
+
+            Stage dialogStage = new Stage();
+            dialogStage.initOwner(primaryStage);
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.setTitle("Все пользователи");
+
+            TableView<User> table = new TableView<>();
+            table.setMaxWidth(900);
+            table.setMaxHeight(400);
+
+            TableColumn<User, String> loginCol = new TableColumn<>("Логин");
+            loginCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUserLogin()));
+            loginCol.setPrefWidth(100);
+
+            TableColumn<User, String> passwordCol = new TableColumn<>("Пароль");
+            passwordCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUserPassword()));
+            passwordCol.setPrefWidth(100);
+
+            TableColumn<User, String> roleCol = new TableColumn<>("Роль");
+            roleCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUserRole()));
+            roleCol.setPrefWidth(80);
+
+            TableColumn<User, String> nameCol = new TableColumn<>("ФИО");
+            nameCol.setCellValueFactory(data -> {
+                User u = data.getValue();
+                String name = "—";
+                if ("STUDENT".equals(u.getUserRole())) {
+                    for (Student s : students) {
+                        if (s.getUserId() == u.getUserId()) {
+                            name = s.getStudentFullName();
+                            break;
+                        }
+                    }
+                } else if ("TEACHER".equals(u.getUserRole())) {
+                    for (Teacher t : teachers) {
+                        if (t.getUserId() == u.getUserId()) {
+                            name = t.getTeacherFullName();
+                            break;
+                        }
+                    }
+                } else if ("ADMIN".equals(u.getUserRole())) {
+                    name = "Администратор";
+                }
+                return new javafx.beans.property.SimpleStringProperty(name);
+            });
+            nameCol.setPrefWidth(180);
+
+            TableColumn<User, String> classCol = new TableColumn<>("Класс/Предмет");
+            classCol.setCellValueFactory(data -> {
+                User u = data.getValue();
+                String info = "—";
+                if ("STUDENT".equals(u.getUserRole())) {
+                    for (Student s : students) {
+                        if (s.getUserId() == u.getUserId()) {
+                            info = s.getClassName();
+                            break;
+                        }
+                    }
+                } else if ("TEACHER".equals(u.getUserRole())) {
+                    for (Teacher t : teachers) {
+                        if (t.getUserId() == u.getUserId()) {
+                            try {
+                                Subject subj = db.getSubjectById(t.getSubject());
+                                info = t.getClassNames() + " (" + (subj != null ? subj.getSubjectName() : "—") + ")";
+                            } catch (SQLException ex) {
+                                info = t.getClassNames() + " (ошибка)";
+                            }
+                            break;
+                        }
+                    }
+                }
+                return new javafx.beans.property.SimpleStringProperty(info);
+            });
+            classCol.setPrefWidth(150);
+
+            TableColumn<User, Void> actionCol = new TableColumn<>("Действия");
+            actionCol.setPrefWidth(150);
+            actionCol.setCellFactory(col -> {
+                TableCell<User, Void> cell = new TableCell<User, Void>() {
+                    @Override
+                    protected void updateItem(Void item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty) {
+                            setGraphic(null);
+                        } else {
+                            User user = getTableRow().getItem();
+                            HBox buttons = new HBox(5);
+                            buttons.setAlignment(Pos.CENTER);
+
+                            if (!"ADMIN".equals(user.getUserRole())) {
+                                Button editBtn = new Button("✏️");
+                                editBtn.setStyle("-fx-background-color: #5865f2; -fx-text-fill: white; -fx-font-size: 12px; -fx-min-width: 30px;");
+                                editBtn.setOnAction(e -> showEditUserDialog(user, students, teachers, subjects));
+
+                                Button deleteBtn = new Button("🗑");
+                                deleteBtn.setStyle("-fx-background-color: #ed4245; -fx-text-fill: white; -fx-font-size: 12px; -fx-min-width: 30px;");
+                                deleteBtn.setOnAction(e -> deleteUser(user));
+
+                                buttons.getChildren().addAll(editBtn, deleteBtn);
+                            }
+
+                            setGraphic(buttons);
+                        }
+                    }
+                };
+                return cell;
+            });
+
+            table.getColumns().addAll(loginCol, passwordCol, roleCol, nameCol, classCol, actionCol);
+            table.getItems().addAll(users);
+
+            Button closeButton = new Button("Закрыть");
+            closeButton.setMaxWidth(200);
+            closeButton.setOnAction(e -> dialogStage.close());
+
+            VBox layout = new VBox(15);
+            layout.setPadding(new Insets(20));
+            layout.setAlignment(Pos.CENTER);
+            layout.getChildren().addAll(new Label("Список пользователей"), table, closeButton);
+
+            Scene scene = new Scene(layout, 950, 550);
+            scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+
         } catch (SQLException e) {
             e.printStackTrace();
             showAlert("Ошибка", "Не удалось загрузить список пользователей");
         }
+    }
+
+    private void showEditUserDialog(User user, List<Student> students, List<Teacher> teachers, List<Subject> subjects) {
+        Stage editStage = new Stage();
+        editStage.initOwner(primaryStage);
+        editStage.initModality(Modality.WINDOW_MODAL);
+        editStage.setTitle("Редактировать: " + user.getUserLogin());
+
+        VBox layout = new VBox(15);
+        layout.setPadding(new Insets(30));
+        layout.setAlignment(Pos.CENTER);
+
+        Label titleLabel = new Label("Редактирование пользователя");
+        titleLabel.setStyle("-fx-font-size: 20px;");
+
+        if ("STUDENT".equals(user.getUserRole())) {
+            Student student = students.stream().filter(s -> s.getUserId() == user.getUserId()).findFirst().orElse(null);
+            if (student != null) {
+                TextField classField = new TextField(student.getClassName());
+                classField.setPromptText("Класс (например, 9А)");
+                classField.setMaxWidth(300);
+
+                Button saveBtn = new Button("Сохранить");
+                saveBtn.setMaxWidth(300);
+                saveBtn.setOnAction(e -> {
+                    try {
+                        db.updateStudentClass(user.getUserId(), classField.getText().trim());
+                        showAlert("Успех", "Класс обновлён!");
+                        editStage.close();
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                        showAlert("Ошибка", "Не удалось обновить: " + ex.getMessage());
+                    }
+                });
+
+                Button cancelBtn = new Button("Отмена");
+                cancelBtn.setMaxWidth(300);
+                cancelBtn.setStyle("-fx-background-color: #4f545c;");
+                cancelBtn.setOnAction(e -> editStage.close());
+
+                layout.getChildren().addAll(titleLabel, new Label("Текущий класс: " + student.getClassName()), classField, saveBtn, cancelBtn);
+            }
+        } else if ("TEACHER".equals(user.getUserRole())) {
+            Teacher teacher = teachers.stream().filter(t -> t.getUserId() == user.getUserId()).findFirst().orElse(null);
+            if (teacher != null) {
+                TextField classNamesField = new TextField(teacher.getClassNames());
+                classNamesField.setPromptText("Классы (например, 9А, 10Б)");
+                classNamesField.setMaxWidth(300);
+
+                ComboBox<Subject> subjectCombo = new ComboBox<>();
+                subjectCombo.getItems().addAll(subjects);
+                subjectCombo.setPromptText("Выберите предмет");
+                subjectCombo.setMaxWidth(300);
+                subjectCombo.setValue(subjects.stream().filter(s -> s.getSubjectId() == teacher.getSubject()).findFirst().orElse(null));
+
+                Button saveBtn = new Button("Сохранить");
+                saveBtn.setMaxWidth(300);
+                saveBtn.setOnAction(e -> {
+                    Subject selected = subjectCombo.getValue();
+                    if (selected == null) {
+                        showAlert("Ошибка", "Выберите предмет!");
+                        return;
+                    }
+                    try {
+                        db.updateTeacher(user.getUserId(), selected.getSubjectId(), classNamesField.getText().trim());
+                        showAlert("Успех", "Данные учителя обновлены!");
+                        editStage.close();
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                        showAlert("Ошибка", "Не удалось обновить: " + ex.getMessage());
+                    }
+                });
+
+                Button cancelBtn = new Button("Отмена");
+                cancelBtn.setMaxWidth(300);
+                cancelBtn.setStyle("-fx-background-color: #4f545c;");
+                cancelBtn.setOnAction(e -> editStage.close());
+
+                layout.getChildren().addAll(titleLabel, new Label("Текущие классы: " + teacher.getClassNames()), classNamesField, subjectCombo, saveBtn, cancelBtn);
+            }
+        }
+
+        Scene scene = new Scene(layout, 400, 400);
+        scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+
+        editStage.setScene(scene);
+        editStage.showAndWait();
+    }
+
+    private void deleteUser(User user) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Подтверждение");
+        confirm.setHeaderText("Удалить пользователя " + user.getUserLogin() + "?");
+        confirm.setContentText("Это действие нельзя отменить.");
+
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    db.deleteUser(user.getUserId());
+                    showAlert("Успех", "Пользователь удалён!");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    showAlert("Ошибка", "Не удалось удалить: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void showAlert(String title, String message) {
