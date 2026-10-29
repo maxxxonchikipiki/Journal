@@ -210,25 +210,26 @@ public class LoginApp extends Application {
         if ("ADMIN".equals(user.getUserRole())) {
             AdminPanel adminPanel = new AdminPanel(db, user, primaryStage);
             adminPanel.show();
-        } else {
-            VBox layout = new VBox(10);
-            layout.setPadding(new Insets(20));
-            layout.setAlignment(Pos.CENTER);
-
-            Label welcomeLabel = new Label("Добро пожаловать, " + user.getUserLogin() + "!");
-            Label roleLabel = new Label("Ваша роль: " + user.getUserRole());
-
-            Button logoutButton = new Button("Выйти");
-            logoutButton.setOnAction(e -> showLoginWindow(primaryStage));
-
-            layout.getChildren().addAll(welcomeLabel, roleLabel, logoutButton);
-
-            Scene scene = new Scene(layout, 400, 300);
-            scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
-
-            primaryStage.setTitle("Журнал - Главная");
-            primaryStage.setScene(scene);
+        } else if ("TEACHER".equals(user.getUserRole())) {
+            TeacherPanel teacherPanel = new TeacherPanel(db, user, primaryStage);
+            teacherPanel.show();
+        } else if ("STUDENT".equals(user.getUserRole())) {
+            StudentPanel studentPanel = new StudentPanel(db, user, primaryStage);
+            studentPanel.show();
         }
+    }
+
+    private Button createLogoutButton(Stage primaryStage) {
+        Button logoutButton = new Button("Выйти");
+        logoutButton.setOnAction(e -> {
+            try {
+                new LoginApp().start(new Stage());
+                primaryStage.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        return logoutButton;
     }
 
     private void showAlert(String title, String message) {
