@@ -649,6 +649,87 @@ public class SQLmanager {
     	System.out.println("Пользователь с ID " + userId + " удалён");
     }
 
+    public boolean hasUsers() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Users";
+        Statement stmt = connection.createStatement();
+        ResultSet res = stmt.executeQuery(sql);
+        int count = 0;
+        if (res.next()) {
+            count = res.getInt(1);
+        }
+        res.close();
+        stmt.close();
+        return count > 0;
+    }
+
+    private String generatePassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder password = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 8; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return password.toString();
+    }
+
+    private String generateTeacherLogin() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Teachers";
+        Statement stmt = connection.createStatement();
+        ResultSet res = stmt.executeQuery(sql);
+        int count = 0;
+        if (res.next()) {
+            count = res.getInt(1);
+        }
+        res.close();
+        stmt.close();
+        return String.format("t%03d", count + 1);
+    }
+
+    private String generateStudentLogin() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Students";
+        Statement stmt = connection.createStatement();
+        ResultSet res = stmt.executeQuery(sql);
+        int count = 0;
+        if (res.next()) {
+            count = res.getInt(1);
+        }
+        res.close();
+        stmt.close();
+        return String.format("st%03d", count + 1);
+    }
+
+    public User addTeacherWithAutoLogin(String teacherFullName, int subjectId) throws SQLException {
+        String login = generateTeacherLogin();
+        String password = generatePassword();
+        String stTeacherId = login;
+
+        User user = registerUser(login, password, "TEACHER");
+
+        Teacher teacher = new Teacher(0, user.getUserId(), stTeacherId, teacherFullName, subjectId);
+        addTeacher(teacher);
+
+        System.out.println("Учитель добавлен: " + teacherFullName);
+        System.out.println("Логин: " + login + ", Пароль: " + password);
+
+        return user;
+    }
+
+    public User addStudentWithAutoLogin(String studentFullName) throws SQLException {
+        String login = generateStudentLogin();
+        String password = generatePassword();
+        String stId = login;
+
+        User user = registerUser(login, password, "STUDENT");
+
+        Student student = new Student(0, user.getUserId(), stId, studentFullName);
+        addStudent(student);
+
+        System.out.println("Ученик добавлен: " + studentFullName);
+        System.out.println("Логин: " + login + ", Пароль: " + password);
+
+        return user;
+    }
+
     public void disconnect() throws SQLException {
         if (connection != null) {
             connection.close();
